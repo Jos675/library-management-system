@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { RouteGuard } from './components/Auth/RouteGuards';
 import GlobalLayout from './components/Layout/GlobalLayout';
@@ -27,9 +27,9 @@ const NotFoundPage: React.FC = () => (
     <div className="text-center">
       <h1 className="text-6xl font-bold text-gray-900">404</h1>
       <p className="text-xl text-gray-600 mt-4">Page not found</p>
-      <a href="/opac" className="mt-6 inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+      <Link to="/opac" className="mt-6 inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
         Go to OPAC
-      </a>
+      </Link>
     </div>
   </div>
 );
@@ -42,9 +42,9 @@ const UnauthorizedPage: React.FC = () => (
     <div className="text-center">
       <h1 className="text-6xl font-bold text-red-600">401</h1>
       <p className="text-xl text-gray-600 mt-4">Unauthorized Access</p>
-      <a href="/login" className="mt-6 inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+      <Link to="/login" className="mt-6 inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
         Login
-      </a>
+      </Link>
     </div>
   </div>
 );
@@ -94,7 +94,7 @@ function getDashboardPath(role: string): string {
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <Router>
+      <Router basename="/library-management-system">
         <GlobalLayout>
           <Routes>
             {/* Public Routes */}
