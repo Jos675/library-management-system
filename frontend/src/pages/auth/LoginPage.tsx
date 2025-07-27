@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { mockApiService } from '../../services/mockApi';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -11,6 +12,9 @@ const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  // Get demo credentials for display
+  const demoCredentials = mockApiService.getDemoCredentials();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -20,7 +24,24 @@ const LoginPage: React.FC = () => {
       await login(email, password);
       navigate('/'); // Will redirect to appropriate dashboard
     } catch (error: any) {
-      setError(error.response?.data?.detail || 'Login failed. Please try again.');
+      setError(error.response?.data?.detail || error.message || 'Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Quick login function for demo accounts
+  const quickLogin = async (username: string, password: string) => {
+    setEmail(username);
+    setPassword(password);
+    setIsLoading(true);
+    setError('');
+
+    try {
+      await login(username, password);
+      navigate('/');
+    } catch (error: any) {
+      setError(error.response?.data?.detail || error.message || 'Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -97,12 +118,29 @@ const LoginPage: React.FC = () => {
 
           <div className="text-center">
             <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-              <h3 className="text-sm font-medium text-blue-800 mb-2">Demo Accounts:</h3>
-              <div className="text-xs text-blue-600 space-y-1">
-                <div><strong>Admin:</strong> admin@balimocollege.edu.pg / admin123</div>
-                <div><strong>Librarian:</strong> librarian@balimocollege.edu.pg / librarian123</div>
-                <div><strong>Student:</strong> john.student@balimocollege.edu.pg / student123</div>
+              <h3 className="text-sm font-medium text-blue-800 mb-3">🎯 Demo Accounts (Click to Login):</h3>
+              <div className="space-y-2">
+                {demoCredentials.map((cred, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => quickLogin(cred.username, cred.password)}
+                    disabled={isLoading}
+                    className="w-full text-left p-2 bg-white rounded border border-blue-200 hover:bg-blue-50 disabled:opacity-50 transition-colors"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="text-sm font-medium text-blue-900">{cred.role}</div>
+                        <div className="text-xs text-blue-600">{cred.username} / {cred.password}</div>
+                      </div>
+                      <div className="text-blue-500">→</div>
+                    </div>
+                  </button>
+                ))}
               </div>
+              <p className="text-xs text-blue-500 mt-2">
+                💡 This is a live demo with mock data for testing purposes
+              </p>
             </div>
           </div>
         </form>

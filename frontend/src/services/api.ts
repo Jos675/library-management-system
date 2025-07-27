@@ -1,15 +1,18 @@
 import axios from 'axios';
 import config from './config';
+import { mockApiService } from './mockApi';
 
 // Types
 export interface User {
   id: number;
   email: string;
   username: string;
-  full_name: string;
+  first_name?: string;
+  last_name?: string;
+  full_name?: string;
   role: 'admin' | 'librarian' | 'student';
   is_active: boolean;
-  created_at: string;
+  created_at?: string;
 }
 
 export interface Book {
@@ -120,11 +123,49 @@ class ApiService {
 
   // Auth methods
   async login(email: string, password: string): Promise<LoginResponse> {
-    const response = await this.api.post('/auth/login/', {
-      email,
-      password,
-    });
-    return response.data;
+    // Use mock API if we're on GitHub Pages or production without backend
+    if (mockApiService.shouldUseMock()) {
+      try {
+        const mockResponse = await mockApiService.login({ 
+          username: email, // Mock API uses username, not email
+          password 
+        });
+        
+        return {
+          user: mockResponse.user as User,
+          tokens: {
+            access: mockResponse.access_token,
+            refresh: mockResponse.refresh_token
+          }
+        };
+      } catch (error) {
+        throw new Error(error instanceof Error ? error.message : 'Login failed');
+      }
+    }
+
+    // Try real API
+    try {
+      const response = await this.api.post('/auth/login/', {
+        email,
+        password,
+      });
+      return response.data;
+    } catch (error) {
+      // If real API fails, fall back to mock for demo purposes
+      console.warn('Real API failed, falling back to mock API for demo');
+      const mockResponse = await mockApiService.login({ 
+        username: email,
+        password 
+      });
+      
+      return {
+        user: mockResponse.user as User,
+        tokens: {
+          access: mockResponse.access_token,
+          refresh: mockResponse.refresh_token
+        }
+      };
+    }
   }
 
   async register(data: {
@@ -134,8 +175,52 @@ class ApiService {
     password: string;
     password_confirm: string;
   }): Promise<LoginResponse> {
-    const response = await this.api.post('/auth/register/', data);
-    return response.data;
+    // Use mock API if we're on GitHub Pages or production without backend
+    if (mockApiService.shouldUseMock()) {
+      try {
+        const mockResponse = await mockApiService.register({
+          username: data.username,
+          email: data.email,
+          first_name: data.full_name.split(' ')[0] || '',
+          last_name: data.full_name.split(' ')[1] || '',
+          password: data.password
+        });
+        
+        return {
+          user: mockResponse.user as User,
+          tokens: {
+            access: mockResponse.access_token,
+            refresh: mockResponse.refresh_token
+          }
+        };
+      } catch (error) {
+        throw new Error(error instanceof Error ? error.message : 'Registration failed');
+      }
+    }
+
+    // Try real API
+    try {
+      const response = await this.api.post('/auth/register/', data);
+      return response.data;
+    } catch (error) {
+      // If real API fails, fall back to mock for demo purposes
+      console.warn('Real API failed, falling back to mock API for demo');
+      const mockResponse = await mockApiService.register({
+        username: data.username,
+        email: data.email,
+        first_name: data.full_name.split(' ')[0] || '',
+        last_name: data.full_name.split(' ')[1] || '',
+        password: data.password
+      });
+      
+      return {
+        user: mockResponse.user as User,
+        tokens: {
+          access: mockResponse.access_token,
+          refresh: mockResponse.refresh_token
+        }
+      };
+    }
   }
 
   async getProfile(): Promise<User> {
@@ -208,8 +293,77 @@ class ApiService {
     available_only?: boolean;
     page?: number;
   }): Promise<ApiResponse<Book>> {
-    const response = await this.api.get('/books/search/', { params });
-    return response.data;
+    // Use mock API if we're on GitHub Pages or production without backend
+    if (mockApiService.shouldUseMock()) {
+      try {
+        const mockResponse = await mockApiService.searchBooks(params.query || '', {
+          category: params.category,
+          availability: params.available_only ? 'available' : undefined
+        });
+        
+        // Transform mock data to match expected API response format
+        return {
+          results: mockResponse.books.map(book => ({
+            id: book.id,
+            title: book.title,
+            author: book.author,
+            isbn: book.isbn,
+            category: book.category,
+            total_copies: 1,
+            available_copies: book.availability_status === 'available' ? 1 : 0,
+            shelf_location: book.location,
+            description: book.description,
+            publication_year: book.publication_year,
+            publisher: 'Demo Publisher',
+            is_available: book.availability_status === 'available',
+            borrowed_copies: book.availability_status === 'borrowed' ? 1 : 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })) as Book[],
+          count: mockResponse.total,
+          next: null,
+          previous: null
+        };
+      } catch (error) {
+        console.warn('Mock API failed:', error);
+      }
+    }
+
+    // Try real API
+    try {
+      const response = await this.api.get('/books/search/', { params });
+      return response.data;
+    } catch (error) {
+      // If real API fails, fall back to mock for demo purposes
+      console.warn('Real API failed, falling back to mock API for demo');
+      const mockResponse = await mockApiService.searchBooks(params.query || '', {
+        category: params.category,
+        availability: params.available_only ? 'available' : undefined
+      });
+      
+      return {
+        results: mockResponse.books.map(book => ({
+          id: book.id,
+          title: book.title,
+          author: book.author,
+          isbn: book.isbn,
+          category: book.category,
+          total_copies: 1,
+          available_copies: book.availability_status === 'available' ? 1 : 0,
+          shelf_location: book.location,
+          description: book.description,
+          publication_year: book.publication_year,
+          publisher: 'Demo Publisher',
+          is_available: book.availability_status === 'available',
+          borrowed_copies: book.availability_status === 'borrowed' ? 1 : 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })) as Book[],
+        count: mockResponse.total,
+        next: null,
+        previous: null
+      };
+    }
   }
 
   async getBookCategories(): Promise<string[]> {
